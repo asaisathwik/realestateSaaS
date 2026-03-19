@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helpers
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return signedIn() && request.auth.uid == ownerId;
+    }
+
+    // --- OWNERS COLLECTION ---
+    match /owners/{uid} {
+      allow read, create, update, delete: if isOwner(uid);
+    }
+
+    // --- EMPLOYEES ---
+    match /employees/{employeeId} {
+      // Login lookup by mobile (step 1 of employee login)
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update, delete: if signedIn()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // --- EMPLOYEES BY AUTH UID ---
+    // Maps employee's Firebase Auth uid -> ownerId (used when adding employee and when deleting).
+    // Doc id = employee auth uid, field ownerId = owner's uid.
+    match /employeesByAuthUid/{authUid} {
+      allow read: if signedIn() && request.auth.uid == authUid;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // --- LAYOUTS + PLOTS ---
+    match /layouts/{layoutId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow read: if signedIn();
+
+      allow update, delete: if signedIn()
+        && resource.data.ownerId == request.auth.uid;
+
+      match /plots/{plotId} {
+        allow create: if signedIn()
+          && request.resource.data.ownerId == request.auth.uid;
+
+        allow read: if signedIn();
+
+        allow update, delete: if signedIn()
+          && get(/databases/$(database)/documents/layouts/$(layoutId)).data.ownerId == request.auth.uid;
+      }
+    }
+  }
+}

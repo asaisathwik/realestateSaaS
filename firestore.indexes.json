@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "employees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "normalizedMobile", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
